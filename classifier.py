@@ -1,3 +1,4 @@
+import requests
 import random
 import string
 import spotipy
@@ -14,6 +15,9 @@ from math import pi
 
 
 #-------------Variables--------------
+# export SPOTIPY_CLIENT_ID='9d6f6b55c63b442c825236c74f4d8cc5'
+# export SPOTIPY_CLIENT_SECRET='2ee56909011b41e3bc7c25299b9b41cb'
+# export SPOTIPY_REDIRECT_URI='https://developer.spotify.com/dashboard/applications/9d6f6b55c63b442c825236c74f4d8cc5'
 cid = "9d6f6b55c63b442c825236c74f4d8cc5"
 secret = "2ee56909011b41e3bc7c25299b9b41cb"
 redirect_uri = "https://developer.spotify.com/dashboard/applications/9d6f6b55c63b442c825236c74f4d8cc5"
