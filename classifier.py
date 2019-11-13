@@ -21,7 +21,8 @@ secret = "2ee56909011b41e3bc7c25299b9b41cb"
 redirect_uri = "https://developer.spotify.com/dashboard/applications/9d6f6b55c63b442c825236c74f4d8cc5"
 username = "1278886039" #username id
 
-#All playlist ID's are below
+
+#----------PLAYLIST IDS AND LINKS IN CASE OF INQUIRY...UGLY BUT THOUGHT IT WAS ESSENTIAL-----------
 #RAP/Hip-hop
 rap1ID = "37i9dQZF1DX0XUsuxWHRQd" #https://open.spotify.com/playlist/37i9dQZF1DX0XUsuxWHRQd RapCaviar
 rap2ID = "4pCLzyVRnWpOivB6RwPREo" #https://open.spotify.com/playlist/4pCLzyVRnWpOivB6RwPREo Rap Playlist 2019
@@ -67,7 +68,6 @@ jazz9ID = "05Hd48jdQIz3s8WRrvGnzf" #https://open.spotify.com/playlist/05Hd48jdQI
 # jazz10ID = "478wi4LZyjCS1Jo6y26xnI" #https://open.spotify.com/playlist/478wi4LZyjCS1Jo6y26xnI
 jazz11ID = "7A36aaHgeJ3TXlCsVr86CX" #https://open.spotify.com/playlist/7A36aaHgeJ3TXlCsVr86CX GIANT GUY - may delete and redo
 
-
 jazzIDs = [jazz2ID, jazz4ID, jazz5ID, jazz8ID, jazz9ID, jazz11ID]
 
 #CLASSICAL
@@ -110,6 +110,9 @@ edm11ID = "2W32HNDe5OgNsPvciLm1Ix" #https://open.spotify.com/playlist/2W32HNDe5O
 edm12ID = "5Yn8cufVoLX4QubVGUOj9n" #https://open.spotify.com/playlist/5Yn8cufVoLX4QubVGUOj9n house music
 
 edmIDs = [edm1ID, edm2ID, edm3ID, edm4ID, edm5ID, edm6ID, edm7ID, edm8ID, edm9ID, edm10ID, edm11ID, edm12ID]
+
+#------------IDS DONE-----------------
+
 
 #----------AUTHORIZATION--------------
 client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret) 
@@ -176,6 +179,6 @@ print("EDM length: ", len(edmSongIDs))
 # album = sp.album(track['album']['id'])
 # print(album['genres'])
 # print(track['album'])
-# release_date = track['album']['release_date']
+# release_date = track['album']['release_date'] IMPORTANT DONT DELETE
 # print(release_date)
 # print(features)
