@@ -32,8 +32,9 @@ rap6ID = "5V1TS5zoSk9hNpGeofCAxq" #https://open.spotify.com/playlist/5V1TS5zoSk9
 rap7ID = "2SmIysAFFMz4cBPPaQ70v7" #https://open.spotify.com/playlist/2SmIysAFFMz4cBPPaQ70v7 Hip-hop 2000 classics
 rap8ID = "2mlGr2NYuJXRA7M6GYhmNZ" #https://open.spotify.com/playlist/2mlGr2NYuJXRA7M6GYhmNZ Hip-hop Lit
 rap9ID = "5iA8wivZWLZ9iCLrvj1PLV" #https://open.spotify.com/playlist/5iA8wivZWLZ9iCLrvj1PLV 90's rap
+rap10ID = "5vgukxj086jbI0VRXIemTQ" #https://open.spotify.com/playlist/5vgukxj086jbI0VRXIemTQ mauras wrap
 
-rapIDs = [rap1ID, rap2ID, rap3ID, rap4ID, rap5ID, rap6ID, rap7ID, rap8ID, rap9ID]
+rapIDs = [rap1ID, rap2ID, rap3ID, rap4ID, rap5ID, rap6ID, rap7ID, rap8ID, rap9ID, rap10ID]
 
 #ROCK
 rock1ID = "37i9dQZF1DWXRqgorJj26U" #https://open.spotify.com/playlist/37i9dQZF1DWXRqgorJj26U Rock classics
@@ -67,9 +68,13 @@ jazzIDs = [jazz1ID, jazz2ID, jazz3ID, jazz4ID, jazz5ID, jazz6ID, jazz7ID, jazz8I
 #CLASSICAL
 
 #COUNTRY
+country1ID = "2rlCIi7oKEyKTN42BUdMSB" #https://open.spotify.com/playlist/2rlCIi7oKEyKTN42BUdMSB maura Country
 
+countryIDs = [country1ID]
 #EDM
+edm1ID = "0tEj701zR0xgOXhXucX57B" #https://open.spotify.com/playlist/0tEj701zR0xgOXhXucX57B maura edm (abg)
 
+edmIDs = [edm1ID]
 
 #----------AUTHORIZATION--------------
 client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret) 
@@ -85,24 +90,26 @@ else:
 def mergePlaylists(ids):
     allSongIDs = []
     for id in ids:
-        playlist = sp.user_playlist(username, id)
-        playlistTracks = (playlist["tracks"])
-        playlistSongs = playlistTracks["items"]
-        for song in playlistSongs:
+        playlist = get_playlist_tracks(id)
+        for song in playlist:
             if song['track']['id'] in allSongIDs:
                 continue
-            else:
-                allSongIDs.append(song['track']['id'])
-
+            allSongIDs.append(song['track']['id'])
     return allSongIDs
+
+def get_playlist_tracks(playlist_id):
+    results = sp.user_playlist_tracks(username,playlist_id)
+    tracks = results['items']
+    while results['next']:
+        results = sp.next(results)
+        tracks.extend(results['items'])
+    return tracks
 
 def getFeatures(songIDs):
     #SOMEHOW DEAL WITH FEATURE EXTRACTION AND AVERAGING???
     for id in songIDs:
         features = sp.audio_features(id)
         print(features)
-
-
 
 #need different song lists in order to train classifier
 rapSongIDs = mergePlaylists(rapIDs)
@@ -111,7 +118,12 @@ rockSongIDs = mergePlaylists(rockIDs)
 print("Rock length: ", len(rockSongIDs))
 jazzSongIDs = mergePlaylists(jazzIDs)
 print("Jazz length: ", len(jazzSongIDs))
+countrySongIDs = mergePlaylists(countryIDs)
+print("Country length: ", len(countrySongIDs))
+edmSongIDs = mergePlaylists(edmIDs)
+print("EDM length: ", len(edmSongIDs))
 
+print(len(get_playlist_tracks(rap10ID)))
 
 # longestTracks = longestPlay["tracks"]
 # longestPlaySongs = longestTracks["items"]
