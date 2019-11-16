@@ -172,6 +172,87 @@ print("EDM length: ", len(edmSongIDs))
 #     album = sp.album(track['album']['id'])
 #     print(album['genres'])
 
+def feature_extraction():
+    songLists = [rapSongIDs, rockSongIDs, jazzSongIDs, classicalSongIDs, countrySongIDs, edmSongIDs]
+    rap_features, rap_ids, rock_features, rock_ids, jazz_features, jazz_ids, country_features, country_ids, edm_features, edm_ids = [],[],[],[],[],[],[],[],[],[] 
+    for song in rapSongIDs:#done
+        audio_features = sp.audio_features(song)
+        #print(audio_features[0])
+        if audio_features[0]!=None:
+            rap_ids.append(song)
+            rap_features.append(audio_features[0])
+
+    for song in rockSongIDs:#done
+        audio_features = sp.audio_features(song)
+        #print(audio_features[0])
+        if audio_features[0]!=None:
+            rock_ids.append(song)
+            rock_features.append(audio_features[0])
+
+
+    for song in jazzSongIDs:#done
+        audio_features = sp.audio_features(song)
+        #print(audio_features[0])
+        if audio_features[0]!=None:
+            jazz_ids.append(song)
+            jazz_features.append(audio_features[0])
+
+    for song in classicalSongIDs: #done
+        try:
+            audio_features = sp.audio_features(song)
+            if audio_features[0]!=None:
+                classical_ids.append(song)
+                classical_features.append(audio_features[0])
+        except Exception:
+            continue
+
+    for song in countrySongIDs:
+        try:
+            audio_features = sp.audio_features(song)
+            #print(audio_features[0])
+            if audio_features[0]!=None:
+                country_ids.append(song)
+                country_features.append(audio_features[0])
+        except Exception:
+            continue
+
+    for song in edmSongIDs:
+        try:
+            audio_features = sp.audio_features(song)
+            #print(audio_features[0])
+            if audio_features[0]!=None:
+                edm_ids.append(song)
+                edm_features.append(audio_features[0])
+        except Exception:
+            continue
+
+    rap_df = pd.DataFrame(rap_features, index = rap_ids)
+    rock_df = pd.DataFrame(rock_features, index = rock_ids)
+    jazz_df = pd.DataFrame(jazz_features, index = jazz_ids)
+    classical_df = pd.DataFrame(classical_features, index = classical_ids)
+    country_df = pd.DataFrame(country_features, index = country_ids)
+    edm_df = pd.DataFrame(edm_features, index = edm_ids)
+
+
+    rap_df = rap_df.drop(["uri", "track_href", "analysis_url", "type", "id", "mode", "duration_ms", "liveness", "time_signature"], axis = 1)
+    rock_df = rock_df.drop(["uri", "track_href", "analysis_url", "type", "id", "mode", "duration_ms", "liveness", "time_signature"], axis = 1)
+    jazz_df = jazz_df.drop(["uri", "track_href", "analysis_url", "type", "id", "mode", "duration_ms", "liveness", "time_signature"], axis = 1)
+    classical_df = classical_df.drop(["uri", "track_href", "analysis_url", "type", "id", "mode", "duration_ms", "liveness", "time_signature"], axis = 1)
+    country_df = country_df.drop(["uri", "track_href", "analysis_url", "type", "id", "mode", "duration_ms", "liveness", "time_signature"], axis = 1)
+    edm_df = edm_df.drop(["uri", "track_href", "analysis_url", "type", "id", "mode", "duration_ms", "liveness", "time_signature"], axis = 1)
+
+
+    rap_df.to_csv("rap_csv.csv")
+    rock_df.to_csv("rock_csv.csv")
+    jazz_df.to_csv("jazz_csv.csv")
+    classical_df.to_csv("classical_csv.csv")
+    country_df.to_csv("country_csv.csv")
+    edm_df.to_csv("edm_csv.csv")
+
+
+
+
+
 
 #-----------DATA CLEANING-------------
 # features = sp.audio_features(longestPlaySongs[0]['track']['id'])
