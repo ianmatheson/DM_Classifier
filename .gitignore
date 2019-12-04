@@ -1,0 +1,12 @@
+#added ignore checkpoints
+.ipynb_checkpoints
+*.cache
+.DS_Store
+*.egg-info
+*~
+*.bak
+.coverage
+.pytest_cache
+*.swp
+*.map
+*.iml
