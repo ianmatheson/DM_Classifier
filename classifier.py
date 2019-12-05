@@ -12,6 +12,7 @@ import numpy as np
 import operator
 import scipy.stats as ss
 from math import pi
+import math
 
 
 #-------------Variables--------------
@@ -124,53 +125,47 @@ if token:
 else:
     print("Can't get token for", username)
 
-#-----------DATA HANDLING------------
-def mergePlaylists(ids):
-    allSongIDs = []
-    for id in ids:
-        playlist = get_playlist_tracks(id)
-        for song in playlist:
-            if song['track']['id'] in allSongIDs:
-                continue
-            allSongIDs.append(song['track']['id'])
-    return allSongIDs
 
-def get_playlist_tracks(playlist_id):
-    results = sp.user_playlist_tracks(username,playlist_id)
-    tracks = results['items']
-    while results['next']:
-        results = sp.next(results)
-        tracks.extend(results['items'])
-    return tracks
+def handlePlaylists():
+    #-----------DATA HANDLING------------
+    def mergePlaylists(ids):
+        allSongIDs = []
+        for id in ids:
+            playlist = get_playlist_tracks(id)
+            for song in playlist:
+                if song['track']['id'] in allSongIDs:
+                    continue
+                allSongIDs.append(song['track']['id'])
+        return allSongIDs
 
-def getFeatures(songIDs):
-    #SOMEHOW DEAL WITH FEATURE EXTRACTION AND AVERAGING???
-    for id in songIDs:
-        features = sp.audio_features(id)
-        print(features)
+    def get_playlist_tracks(playlist_id):
+        results = sp.user_playlist_tracks(username,playlist_id)
+        tracks = results['items']
+        while results['next']:
+            results = sp.next(results)
+            tracks.extend(results['items'])
+        return tracks
 
-#PRINTING OUT LENGTH OF ALL GENRES MERGED PLAYLISTS WITHOUT DUPLICATES
-rapSongIDs = mergePlaylists(rapIDs)
-print("Rap length: ", len(rapSongIDs))
-rockSongIDs = mergePlaylists(rockIDs)
-print("Rock length: ", len(rockSongIDs))
-jazzSongIDs = mergePlaylists(jazzIDs)
-print("Jazz length: ", len(jazzSongIDs))
-classicalSongIDs = mergePlaylists(classicalIDs)
-print("Classical length: ", len(classicalSongIDs))
-countrySongIDs = mergePlaylists(countryIDs)
-print("Country length: ", len(countrySongIDs))
-edmSongIDs = mergePlaylists(edmIDs)
-print("EDM length: ", len(edmSongIDs))
+    def getFeatures(songIDs):
+        #SOMEHOW DEAL WITH FEATURE EXTRACTION AND AVERAGING???
+        for id in songIDs:
+            features = sp.audio_features(id)
+            print(features)
 
-# longestTracks = longestPlay["tracks"]
-# longestPlaySongs = longestTracks["items"]
+    #PRINTING OUT LENGTH OF ALL GENRES MERGED PLAYLISTS WITHOUT DUPLICATES
+    rapSongIDs = mergePlaylists(rapIDs)
+    print("Rap length: ", len(rapSongIDs))
+    rockSongIDs = mergePlaylists(rockIDs)
+    print("Rock length: ", len(rockSongIDs))
+    jazzSongIDs = mergePlaylists(jazzIDs)
+    print("Jazz length: ", len(jazzSongIDs))
+    classicalSongIDs = mergePlaylists(classicalIDs)
+    print("Classical length: ", len(classicalSongIDs))
+    countrySongIDs = mergePlaylists(countryIDs)
+    print("Country length: ", len(countrySongIDs))
+    edmSongIDs = mergePlaylists(edmIDs)
+    print("EDM length: ", len(edmSongIDs))
 
-# for song in longestPlaySongs:
-#     features = sp.audio_features(song['track']['id'])
-#     track = sp.track(song['track']['id'])
-#     album = sp.album(track['album']['id'])
-#     print(album['genres'])
 
 def feature_extraction():
     songLists = [rapSongIDs, rockSongIDs, jazzSongIDs, classicalSongIDs, countrySongIDs, edmSongIDs]
@@ -250,7 +245,60 @@ def feature_extraction():
     edm_df.to_csv("edm_csv.csv")
 
 
-    print(rap_df)
+
+#split data into test and training sets
+def split_data(data):
+    full = data
+    test = []
+    test = pd.DataFrame(data.sample((math.floor(len(data)*0.25))))
+    train = data[~data.isin(test)].dropna()
+    test = test.reset_index()
+    return train,test
+
+#READING IN DATA
+def read_data():
+    classical = pd.read_csv('data/classical_csv.csv')
+    country = pd.read_csv('data/country_csv.csv')
+    edm = pd.read_csv('data/edm_csv.csv')
+    jazz = pd.read_csv('data/jazz_csv.csv')
+    rap = pd.read_csv('data/rap_csv.csv')
+    rock = pd.read_csv('data/rock_csv.csv')
+    #Renaming the first column to trackID
+    classical = classical.rename(columns={'Unnamed: 0': 'trackID'})
+    country = country.rename(columns={'Unnamed: 0': 'trackID'})
+    edm = edm.rename(columns={'Unnamed: 0': 'trackID'})
+    jazz = jazz.rename(columns={'Unnamed: 0': 'trackID'})
+    rap = rap.rename(columns={'Unnamed: 0': 'trackID'})
+    rock = rock.rename(columns={'Unnamed: 0': 'trackID'})
+    return classical, country, edm, jazz, rap, rock
+
+
+# -------- VARIABLES NEEDED ------------
+#calling read data function
+classical, country, edm, jazz, rap, rock = read_data()
+#splitting all the data needed
+classical_train,classical_test = split_data(classical)
+country_train,country_test = split_data(country)
+edm_train,edm_test = split_data(edm)  
+jazz_train,jazz_test = split_data(jazz)
+rap_train,rap_test = split_data(rap)
+rock_train,rock_test = split_data(rock)
+
+#combining all lists into one large list for training and testing
+trainingDFs = [classical_train, country_train, edm_train, jazz_train, rap_train, rock_train]
+testingDFs = [classical_test, country_test, edm_test, jazz_test, rap_test, rock_test]
+
+
+featDict = dict.fromkeys(['classical', 'jazz', 'rap', 'rock'], dict.fromkeys(['trackID', 
+	"acousticness", "danceability", "energy", "instrumentalness", "key", "loudness", 
+    'speechiness', "tempo", 'valence'], []))
+
+
+
+
+# -------- NAIVE BAYES ---------
+# https://machinelearningmastery.com/naive-bayes-classifier-scratch-python/
+
 
 
 
