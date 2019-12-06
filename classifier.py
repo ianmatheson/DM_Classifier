@@ -13,6 +13,7 @@ import operator
 import scipy.stats as ss
 from math import pi
 import math
+from sklearn.model_selection import train_test_split
 
 
 #-------------Variables--------------
@@ -248,11 +249,9 @@ def feature_extraction():
 
 #split data into test and training sets
 def split_data(data):
-    full = data
-    test = []
-    test = pd.DataFrame(data.sample((math.floor(len(data)*0.25))))
-    train = data[~data.isin(test)].dropna()
-    test = test.reset_index()
+    #dropping first column since trackID is not needed for classifiers
+    data = data.drop(columns=['trackID'])
+    train, test = train_test_split(data, test_size = 0.25, random_state = 21)
     return train,test
 
 #READING IN DATA
@@ -263,6 +262,7 @@ def read_data():
     jazz = pd.read_csv('data/jazz_csv.csv')
     rap = pd.read_csv('data/rap_csv.csv')
     rock = pd.read_csv('data/rock_csv.csv')
+
     #Renaming the first column to trackID
     classical = classical.rename(columns={'Unnamed: 0': 'trackID'})
     country = country.rename(columns={'Unnamed: 0': 'trackID'})
@@ -270,6 +270,7 @@ def read_data():
     jazz = jazz.rename(columns={'Unnamed: 0': 'trackID'})
     rap = rap.rename(columns={'Unnamed: 0': 'trackID'})
     rock = rock.rename(columns={'Unnamed: 0': 'trackID'})
+
     return classical, country, edm, jazz, rap, rock
 
 
@@ -288,16 +289,122 @@ rock_train,rock_test = split_data(rock)
 trainingDFs = [classical_train, country_train, edm_train, jazz_train, rap_train, rock_train]
 testingDFs = [classical_test, country_test, edm_test, jazz_test, rap_test, rock_test]
 
+#Have to name dfs in order to compare if classifier found correct playlist or not
+classical_test.name = 'classical'
+country_test.name = 'country'
+edm_test.name = 'edm'
+jazz_test.name = 'jazz'
+rap_test.name = 'rap'
+rock_test.name = 'rock'
 
-featDict = dict.fromkeys(['classical', 'jazz', 'rap', 'rock'], dict.fromkeys(['trackID', 
-	"acousticness", "danceability", "energy", "instrumentalness", "key", "loudness", 
+#compiling all in one list to make looping easier
+allPlaylists = ['classical', 'country', 'edm', 'jazz', 'rap', 'rock']
+
+#creating a central dictionary with all features separated by playlists for graphing
+features = jazz.columns.values
+features = np.delete(features, 0)
+featDict = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'], dict.fromkeys([ "acousticness", 
+    "danceability", "energy", "instrumentalness", "key", "loudness", 
     'speechiness', "tempo", 'valence'], []))
 
+# for feat in features:
+#     for df in trainingDFs:
+#         for playlist in allPlaylists:
+#             allFeats = []
+#             for i in range(0, len(df)):
+#                 allFeats.append(df.iloc[i][feat])
+#             featDict[playlist] = featDict[playlist].copy() #copy is needed to ensure data is different and not carried over
+#             featDict[playlist][feat] = allFeats
 
 
 
 # -------- NAIVE BAYES ---------
 # https://machinelearningmastery.com/naive-bayes-classifier-scratch-python/
+def mean(numbers):
+    #converting to ints
+    numbers = list(map(float, numbers))
+    return sum(numbers)/float(len(numbers))
+ 
+def stdev(numbers):
+    numbers = list(map(float, numbers))
+    avg = mean(numbers)
+    variance = sum([pow(x-avg,2) for x in numbers])/float(len(numbers)-1)
+    return np.sqrt(variance)
+
+#probability function
+def calcProb(x, mean, stdev):
+    exponent = np.exp(-(np.square(x-mean)/(2*np.square(stdev))))
+    return exponent / (np.sqrt(2*pi) * stdev) 
+
+def allFeatsProbs(song, meanSDev):
+    probs = {}
+    for key, value in meanSDev.items():
+        featProbs = []
+        for i, val in enumerate(value):
+            featProbs.append(calcProb(song[i], val[0], val[1]))
+        probs[key] = featProbs
+    return probs
+
+#returns a probability dictionary with playlists as keys
+def probForSong(probs):
+    songProb = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'], [])
+    for key, value in probs.items():
+        prob = 1
+        for val in value:
+            prob = prob * val
+        songProb[key] = songProb[key].copy()
+        songProb[key] = prob
+    return songProb
+
+
+def createNBDict():
+    #creating dictionary with mean and stdev
+    #order: "acousticness", "danceability", "energy", "instrumentalness", "key", "loudness", 'speechiness', "tempo", 'valence'
+    #dict has mean and stdev for each playlist
+    NBDict = {}
+    for playlist in allPlaylists:
+        # for df in trainingDFs:
+            meanSDev = []
+            for feat in features:
+                meanSDev.append((mean(classical[feat]), stdev(classical[feat])))
+            NBDict[playlist] = meanSDev
+    return NBDict
+
+nbDict = createNBDict()
+
+
+def testNB(testLists, nbDict):
+    correct = 0
+    total = 0
+    testLists = testLists[:5]
+    for df in testLists:
+        print(df)
+def findPlaylistNB(testLists, nbDict):
+    allPlays = []
+    #initializing counters
+    correct = 0
+    total = 0
+    for df in testLists:
+        dfCorrect = 0
+        dfTotal = 0
+        for i in range(0, len(df)):
+            probs = probForSong(allFeatsProbs(df.iloc[i], nbDict))
+            #finding max value for prediction
+            playlist = max(probs.items(), key=operator.itemgetter(1))[0]
+            allPlays.append(playlist)
+            #if correct prediction, increase correct 
+            if(df.name == playlist):
+                dfCorrect += 1
+                correct += 1
+            dfTotal += 1
+            total += 1
+        #outputting
+        print("NAIVE BAYES:", df.name, "fraction correct:", float(dfCorrect/dfTotal))
+    print("NAIVE BAYES - Total fraction correct:", float(correct/total))
+
+findPlaylistNB(testingDFs, nbDict)
+
+
 
 
 
