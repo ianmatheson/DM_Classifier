@@ -317,7 +317,9 @@ featDict = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'],
 #             featDict[playlist][feat] = allFeats
 
 
-
+trainingNoCountry = [classical_train, edm_train, jazz_train, rap_train, rock_train]
+testingNoCountry = [classical_test, edm_test, jazz_test, rap_test, rock_test]
+allPlaysNoCountry = ['classical', 'edm', 'jazz', 'rap', 'rock']
 # -------- NAIVE BAYES ---------
 # https://machinelearningmastery.com/naive-bayes-classifier-scratch-python/
 def mean(numbers):
@@ -347,7 +349,8 @@ def allFeatsProbs(song, meanSDev):
 
 #returns a probability dictionary with playlists as keys
 def probForSong(probs):
-    songProb = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'], [])
+    songProb = dict.fromkeys(['classical', 'edm', 'jazz', 'rap', 'rock'], [])
+    # songProb = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'], [])
     for key, value in probs.items():
         prob = 1
         for val in value:
@@ -362,28 +365,30 @@ def createNBDict():
     #order: "acousticness", "danceability", "energy", "instrumentalness", "key", "loudness", 'speechiness', "tempo", 'valence'
     #dict has mean and stdev for each playlist
     NBDict = {}
-    for playlist in allPlaylists:
-        # for df in trainingDFs:
-            meanSDev = []
-            for feat in features:
-                meanSDev.append((mean(classical[feat]), stdev(classical[feat])))
-            NBDict[playlist] = meanSDev
+    i = 0
+    for df in trainingNoCountry:
+        meanSDev = []
+        for feat in features:
+            meanSDev.append((mean(df[feat]), stdev(df[feat])))
+        NBDict[allPlaysNoCountry[i]] = meanSDev
+        i += 1
     return NBDict
 
 nbDict = createNBDict()
 
 
-def testNB(testLists, nbDict):
-    correct = 0
-    total = 0
-    testLists = testLists[:5]
-    for df in testLists:
-        print(df)
 def findPlaylistNB(testLists, nbDict):
     allPlays = []
+    print(nbDict)
     #initializing counters
     correct = 0
     total = 0
+    cc = 0
+    jc = 0
+    clc = 0
+    ec = 0
+    rc = 0
+    rapc = 0
     for df in testLists:
         dfCorrect = 0
         dfTotal = 0
@@ -392,7 +397,20 @@ def findPlaylistNB(testLists, nbDict):
             #finding max value for prediction
             playlist = max(probs.items(), key=operator.itemgetter(1))[0]
             allPlays.append(playlist)
-            #if correct prediction, increase correct 
+            #if correct prediction, increase correct
+            if playlist == 'country':
+                cc += 1
+            if playlist == 'jazz':
+                jc += 1
+            if playlist == 'classical':
+                clc += 1
+            if playlist == 'edm':
+                ec += 1
+            if playlist == 'rock':
+                rc += 1
+            if playlist == 'rap':
+                rapc += 1
+            print(cc, jc, clc, ec, rc, rapc)
             if(df.name == playlist):
                 dfCorrect += 1
                 correct += 1
@@ -402,7 +420,10 @@ def findPlaylistNB(testLists, nbDict):
         print("NAIVE BAYES:", df.name, "fraction correct:", float(dfCorrect/dfTotal))
     print("NAIVE BAYES - Total fraction correct:", float(correct/total))
 
-findPlaylistNB(testingDFs, nbDict)
+
+smallTest = [rock_test]
+findPlaylistNB(testingNoCountry, nbDict)
+# findPlaylistNB(testingDFs, nbDict)
 
 
 
