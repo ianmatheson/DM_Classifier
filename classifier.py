@@ -12,6 +12,8 @@ import numpy as np
 import operator
 import scipy.stats as ss
 from math import pi
+import math
+from sklearn.model_selection import train_test_split
 
 
 #-------------Variables--------------
@@ -124,53 +126,47 @@ if token:
 else:
     print("Can't get token for", username)
 
-#-----------DATA HANDLING------------
-def mergePlaylists(ids):
-    allSongIDs = []
-    for id in ids:
-        playlist = get_playlist_tracks(id)
-        for song in playlist:
-            if song['track']['id'] in allSongIDs:
-                continue
-            allSongIDs.append(song['track']['id'])
-    return allSongIDs
 
-def get_playlist_tracks(playlist_id):
-    results = sp.user_playlist_tracks(username,playlist_id)
-    tracks = results['items']
-    while results['next']:
-        results = sp.next(results)
-        tracks.extend(results['items'])
-    return tracks
+def handlePlaylists():
+    #-----------DATA HANDLING------------
+    def mergePlaylists(ids):
+        allSongIDs = []
+        for id in ids:
+            playlist = get_playlist_tracks(id)
+            for song in playlist:
+                if song['track']['id'] in allSongIDs:
+                    continue
+                allSongIDs.append(song['track']['id'])
+        return allSongIDs
 
-def getFeatures(songIDs):
-    #SOMEHOW DEAL WITH FEATURE EXTRACTION AND AVERAGING???
-    for id in songIDs:
-        features = sp.audio_features(id)
-        print(features)
+    def get_playlist_tracks(playlist_id):
+        results = sp.user_playlist_tracks(username,playlist_id)
+        tracks = results['items']
+        while results['next']:
+            results = sp.next(results)
+            tracks.extend(results['items'])
+        return tracks
 
-#PRINTING OUT LENTGTH OF ALL GENRES MERGED PLAYLISTS WITHOUT DUPLICATES
-rapSongIDs = mergePlaylists(rapIDs)
-print("Rap length: ", len(rapSongIDs))
-rockSongIDs = mergePlaylists(rockIDs)
-print("Rock length: ", len(rockSongIDs))
-jazzSongIDs = mergePlaylists(jazzIDs)
-print("Jazz length: ", len(jazzSongIDs))
-classicalSongIDs = mergePlaylists(classicalIDs)
-print("Classical length: ", len(classicalSongIDs))
-countrySongIDs = mergePlaylists(countryIDs)
-print("Country length: ", len(countrySongIDs))
-edmSongIDs = mergePlaylists(edmIDs)
-print("EDM length: ", len(edmSongIDs))
+    def getFeatures(songIDs):
+        #SOMEHOW DEAL WITH FEATURE EXTRACTION AND AVERAGING???
+        for id in songIDs:
+            features = sp.audio_features(id)
+            print(features)
 
-# longestTracks = longestPlay["tracks"]
-# longestPlaySongs = longestTracks["items"]
+    #PRINTING OUT LENGTH OF ALL GENRES MERGED PLAYLISTS WITHOUT DUPLICATES
+    rapSongIDs = mergePlaylists(rapIDs)
+    print("Rap length: ", len(rapSongIDs))
+    rockSongIDs = mergePlaylists(rockIDs)
+    print("Rock length: ", len(rockSongIDs))
+    jazzSongIDs = mergePlaylists(jazzIDs)
+    print("Jazz length: ", len(jazzSongIDs))
+    classicalSongIDs = mergePlaylists(classicalIDs)
+    print("Classical length: ", len(classicalSongIDs))
+    countrySongIDs = mergePlaylists(countryIDs)
+    print("Country length: ", len(countrySongIDs))
+    edmSongIDs = mergePlaylists(edmIDs)
+    print("EDM length: ", len(edmSongIDs))
 
-# for song in longestPlaySongs:
-#     features = sp.audio_features(song['track']['id'])
-#     track = sp.track(song['track']['id'])
-#     album = sp.album(track['album']['id'])
-#     print(album['genres'])
 
 def feature_extraction():
     songLists = [rapSongIDs, rockSongIDs, jazzSongIDs, classicalSongIDs, countrySongIDs, edmSongIDs]
@@ -248,6 +244,189 @@ def feature_extraction():
     classical_df.to_csv("classical_csv.csv")
     country_df.to_csv("country_csv.csv")
     edm_df.to_csv("edm_csv.csv")
+
+
+
+#split data into test and training sets
+def split_data(data):
+    #dropping first column since trackID is not needed for classifiers
+    data = data.drop(columns=['trackID'])
+    train, test = train_test_split(data, test_size = 0.25, random_state = 21)
+    return train,test
+
+#READING IN DATA
+def read_data():
+    classical = pd.read_csv('data/classical_csv.csv')
+    country = pd.read_csv('data/country_csv.csv')
+    edm = pd.read_csv('data/edm_csv.csv')
+    jazz = pd.read_csv('data/jazz_csv.csv')
+    rap = pd.read_csv('data/rap_csv.csv')
+    rock = pd.read_csv('data/rock_csv.csv')
+
+    #Renaming the first column to trackID
+    classical = classical.rename(columns={'Unnamed: 0': 'trackID'})
+    country = country.rename(columns={'Unnamed: 0': 'trackID'})
+    edm = edm.rename(columns={'Unnamed: 0': 'trackID'})
+    jazz = jazz.rename(columns={'Unnamed: 0': 'trackID'})
+    rap = rap.rename(columns={'Unnamed: 0': 'trackID'})
+    rock = rock.rename(columns={'Unnamed: 0': 'trackID'})
+
+    return classical, country, edm, jazz, rap, rock
+
+
+# -------- VARIABLES NEEDED ------------
+#calling read data function
+classical, country, edm, jazz, rap, rock = read_data()
+#splitting all the data needed
+classical_train,classical_test = split_data(classical)
+country_train,country_test = split_data(country)
+edm_train,edm_test = split_data(edm)  
+jazz_train,jazz_test = split_data(jazz)
+rap_train,rap_test = split_data(rap)
+rock_train,rock_test = split_data(rock)
+
+#combining all lists into one large list for training and testing
+trainingDFs = [classical_train, country_train, edm_train, jazz_train, rap_train, rock_train]
+testingDFs = [classical_test, country_test, edm_test, jazz_test, rap_test, rock_test]
+
+#Have to name dfs in order to compare if classifier found correct playlist or not
+classical_test.name = 'classical'
+country_test.name = 'country'
+edm_test.name = 'edm'
+jazz_test.name = 'jazz'
+rap_test.name = 'rap'
+rock_test.name = 'rock'
+
+#compiling all in one list to make looping easier
+allPlaylists = ['classical', 'country', 'edm', 'jazz', 'rap', 'rock']
+
+#creating a central dictionary with all features separated by playlists for graphing
+features = jazz.columns.values
+features = np.delete(features, 0)
+featDict = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'], dict.fromkeys([ "acousticness", 
+    "danceability", "energy", "instrumentalness", "key", "loudness", 
+    'speechiness', "tempo", 'valence'], []))
+
+# for feat in features:
+#     for df in trainingDFs:
+#         for playlist in allPlaylists:
+#             allFeats = []
+#             for i in range(0, len(df)):
+#                 allFeats.append(df.iloc[i][feat])
+#             featDict[playlist] = featDict[playlist].copy() #copy is needed to ensure data is different and not carried over
+#             featDict[playlist][feat] = allFeats
+
+
+trainingNoCountry = [classical_train, edm_train, jazz_train, rap_train, rock_train]
+testingNoCountry = [classical_test, edm_test, jazz_test, rap_test, rock_test]
+allPlaysNoCountry = ['classical', 'edm', 'jazz', 'rap', 'rock']
+# -------- NAIVE BAYES ---------
+# https://machinelearningmastery.com/naive-bayes-classifier-scratch-python/
+def mean(numbers):
+    #converting to ints
+    numbers = list(map(float, numbers))
+    return sum(numbers)/float(len(numbers))
+ 
+def stdev(numbers):
+    numbers = list(map(float, numbers))
+    avg = mean(numbers)
+    variance = sum([pow(x-avg,2) for x in numbers])/float(len(numbers)-1)
+    return np.sqrt(variance)
+
+#probability function
+def calcProb(x, mean, stdev):
+    exponent = np.exp(-(np.square(x-mean)/(2*np.square(stdev))))
+    return exponent / (np.sqrt(2*pi) * stdev) 
+
+def allFeatsProbs(song, meanSDev):
+    probs = {}
+    for key, value in meanSDev.items():
+        featProbs = []
+        for i, val in enumerate(value):
+            featProbs.append(calcProb(song[i], val[0], val[1]))
+        probs[key] = featProbs
+    return probs
+
+#returns a probability dictionary with playlists as keys
+def probForSong(probs):
+    songProb = dict.fromkeys(['classical', 'edm', 'jazz', 'rap', 'rock'], [])
+    # songProb = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'], [])
+    for key, value in probs.items():
+        prob = 1
+        for val in value:
+            prob = prob * val
+        songProb[key] = songProb[key].copy()
+        songProb[key] = prob
+    return songProb
+
+
+def createNBDict():
+    #creating dictionary with mean and stdev
+    #order: "acousticness", "danceability", "energy", "instrumentalness", "key", "loudness", 'speechiness', "tempo", 'valence'
+    #dict has mean and stdev for each playlist
+    NBDict = {}
+    i = 0
+    for df in trainingNoCountry:
+        meanSDev = []
+        for feat in features:
+            meanSDev.append((mean(df[feat]), stdev(df[feat])))
+        NBDict[allPlaysNoCountry[i]] = meanSDev
+        i += 1
+    return NBDict
+
+nbDict = createNBDict()
+
+
+def findPlaylistNB(testLists, nbDict):
+    allPlays = []
+    print(nbDict)
+    #initializing counters
+    correct = 0
+    total = 0
+    cc = 0
+    jc = 0
+    clc = 0
+    ec = 0
+    rc = 0
+    rapc = 0
+    for df in testLists:
+        dfCorrect = 0
+        dfTotal = 0
+        for i in range(0, len(df)):
+            probs = probForSong(allFeatsProbs(df.iloc[i], nbDict))
+            #finding max value for prediction
+            playlist = max(probs.items(), key=operator.itemgetter(1))[0]
+            allPlays.append(playlist)
+            #if correct prediction, increase correct
+            if playlist == 'country':
+                cc += 1
+            if playlist == 'jazz':
+                jc += 1
+            if playlist == 'classical':
+                clc += 1
+            if playlist == 'edm':
+                ec += 1
+            if playlist == 'rock':
+                rc += 1
+            if playlist == 'rap':
+                rapc += 1
+            print(cc, jc, clc, ec, rc, rapc)
+            if(df.name == playlist):
+                dfCorrect += 1
+                correct += 1
+            dfTotal += 1
+            total += 1
+        #outputting
+        print("NAIVE BAYES:", df.name, "fraction correct:", float(dfCorrect/dfTotal))
+    print("NAIVE BAYES - Total fraction correct:", float(correct/total))
+
+
+smallTest = [rock_test]
+findPlaylistNB(testingNoCountry, nbDict)
+# findPlaylistNB(testingDFs, nbDict)
+
+
+
 
 
 
