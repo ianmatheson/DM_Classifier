@@ -288,6 +288,7 @@ rock_train,rock_test = split_data(rock)
 #combining all lists into one large list for training and testing
 trainingDFs = [classical_train, country_train, edm_train, jazz_train, rap_train, rock_train]
 testingDFs = [classical_test, country_test, edm_test, jazz_test, rap_test, rock_test]
+knnTrainingDict = {'classical': classical_train, 'country': country_train, 'edm': edm_train, 'jazz': jazz_train, 'rap': rap_train, 'rock': rock_train}
 
 #Have to name dfs in order to compare if classifier found correct playlist or not
 classical_test.name = 'classical'
@@ -422,23 +423,68 @@ def findPlaylistNB(testLists, nbDict):
 
 
 smallTest = [rock_test]
-findPlaylistNB(testingNoCountry, nbDict)
+# findPlaylistNB(testingNoCountry, nbDict) #no country
 # findPlaylistNB(testingDFs, nbDict)
 
+#-------KNN ALGORITHM AND HELPERS-------
+def euclideanDistance(data1, data2, length):
+    distance = 0
+    for x in range(length):
+        distance += np.square((data1[x] - data2[x]))
+    return np.sqrt(distance)
 
+#used to loop through all items and call euclideanDist on each one
+def distances(trainingSet, testSong):
+    distanceDict = {}
+    length = testSong.shape[0]
+    for genre, features in trainingSet.items():
+        dist = [[euclideanDistance(features.iloc[x], testSong, length), genre] for x in range(len(features))]
+        distanceDict[genre] = dist
+    return distanceDict
 
+#finding k nearest neighbor with keys and names
+def knn(sortedDistances, k):
+    counter={}
+    for key in sortedDistances.keys():
+        counter[key] = 0  
+    neighborKeyName=[]
+    for i in range(k):
+        minValue=10000
+        for key, value in sortedDistances.items():
+            if value[0][0]<minValue:
+                minName=value[0][1]
+                minKey=key
+                minValue = value[0][0]
+        del(sortedDistances[minKey][0])
+        counter[minKey]=counter[minKey]+1
+        neighborKeyName.append([minKey, minName])
+    return counter, neighborKeyName
 
+knnsmallTrain = {'classical': classical_train.head(5), 'jazz': jazz_train.head(5)}
+#initializing counters for correctness
+sumCorrect = 0
+sumTotal = 0
+#looping thrugh all playlist lists
+for df in testingDFs:
+	correct = 0
+	total = 0
+	for i in range(len(df)):
+		distList = distances(knnTrainingDict, df.iloc[i])
+		sortedDict={}
+		#looping thorugh distList
+		for key in distList.keys():
+		    sortedDict[key]=sorted(distList[key], key=operator.itemgetter(0))
+		counter, neighborKeyAndId = knn(sortedDict, 5)
+		#finding prediction
+		prediction=max(counter.items(), key=operator.itemgetter(1))[0]
+		#if prediction is correct, increase correct
+		if(prediction == df.name):
+			sumCorrect += 1
+			correct += 1
+		sumTotal += 1
+		total += 1
+	print("KNN:", df.name, "fraction correct: ",float(correct/total))
 
+print("KNN - Total fraction correct: ",float(sumCorrect/sumTotal))
+print("-------------------")
 
-
-
-
-#-----------DATA CLEANING-------------
-# features = sp.audio_features(longestPlaySongs[0]['track']['id'])
-# track = sp.track(longestPlaySongs[0]['track']['id'])
-# album = sp.album(track['album']['id'])
-# print(album['genres'])
-# print(track['album'])
-# release_date = track['album']['release_date'] IMPORTANT DONT DELETE
-# print(release_date)
-# print(features)
