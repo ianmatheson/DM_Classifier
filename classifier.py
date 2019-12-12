@@ -113,12 +113,14 @@ edm12ID = "5Yn8cufVoLX4QubVGUOj9n" #https://open.spotify.com/playlist/5Yn8cufVoL
 
 edmIDs = [edm1ID, edm2ID, edm3ID, edm4ID, edm5ID, edm6ID, edm7ID, edm8ID, edm9ID, edm10ID, edm11ID, edm12ID]
 
-#------------IDS DONE-----------------
+#------------IDS END-----------------
 
 
 #----------AUTHORIZATION--------------
+#used for authorizing with spotify to access the API
 client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret) 
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+#all we need is to read my playlists that are on my account
 scope = 'user-library-read playlist-read-private'
 token = util.prompt_for_user_token(username, scope, cid, secret, redirect_uri)
 if token:
@@ -127,6 +129,7 @@ else:
     print("Can't get token for", username)
 
 
+#function to get all features and handle playlists
 def handlePlaylists():
     #-----------DATA HANDLING------------
     def mergePlaylists(ids):
@@ -168,19 +171,20 @@ def handlePlaylists():
     print("EDM length: ", len(edmSongIDs))
 
 
+#function used for feature extraction
 def feature_extraction():
     songLists = [rapSongIDs, rockSongIDs, jazzSongIDs, classicalSongIDs, countrySongIDs, edmSongIDs]
     rap_features, rap_ids, rock_features, rock_ids, jazz_features, jazz_ids, country_features, country_ids, edm_features, edm_ids = [],[],[],[],[],[],[],[],[],[] 
+    
+    #loop through each song in each genre and add audio features
     for song in rapSongIDs:#done
         audio_features = sp.audio_features(song)
-        #print(audio_features[0])
         if audio_features[0]!=None:
             rap_ids.append(song)
             rap_features.append(audio_features[0])
 
     for song in rockSongIDs:#done
         audio_features = sp.audio_features(song)
-        #print(audio_features[0])
         if audio_features[0]!=None:
             rock_ids.append(song)
             rock_features.append(audio_features[0])
@@ -188,7 +192,6 @@ def feature_extraction():
 
     for song in jazzSongIDs:#done
         audio_features = sp.audio_features(song)
-        #print(audio_features[0])
         if audio_features[0]!=None:
             jazz_ids.append(song)
             jazz_features.append(audio_features[0])
@@ -205,7 +208,6 @@ def feature_extraction():
     for song in countrySongIDs:
         try:
             audio_features = sp.audio_features(song)
-            #print(audio_features[0])
             if audio_features[0]!=None:
                 country_ids.append(song)
                 country_features.append(audio_features[0])
@@ -251,6 +253,7 @@ def feature_extraction():
 def split_data(data):
     #dropping first column since trackID is not needed for classifiers
     data = data.drop(columns=['trackID'])
+    #75 25 split on the data
     train, test = train_test_split(data, test_size = 0.25, random_state = 21)
     return train,test
 
@@ -308,14 +311,16 @@ featDict = dict.fromkeys(['classical', 'country', 'edm', 'jazz', 'rap', 'rock'],
     "danceability", "energy", "instrumentalness", "key", "loudness", 
     'speechiness', "tempo", 'valence'], []))
 
-# for feat in features:
-#     for df in trainingDFs:
-#         for playlist in allPlaylists:
-#             allFeats = []
-#             for i in range(0, len(df)):
-#                 allFeats.append(df.iloc[i][feat])
-#             featDict[playlist] = featDict[playlist].copy() #copy is needed to ensure data is different and not carried over
-#             featDict[playlist][feat] = allFeats
+#creating central dictionary for all audio features in all the genres
+#organized by key value which represents the genre of the data as well as another key corresponding to audio feature
+for feat in features:
+    for df in trainingDFs:
+        for playlist in allPlaylists:
+            allFeats = []
+            for i in range(0, len(df)):
+                allFeats.append(df.iloc[i][feat])
+            featDict[playlist] = featDict[playlist].copy() #copy is needed to ensure data is different and not carried over
+            featDict[playlist][feat] = allFeats
 
 
 trainingNoCountry = [classical_train, edm_train, jazz_train, rap_train, rock_train]
@@ -377,19 +382,11 @@ def createNBDict():
 
 nbDict = createNBDict()
 
-
 def findPlaylistNB(testLists, nbDict):
     allPlays = []
-    print(nbDict)
     #initializing counters
     correct = 0
     total = 0
-    cc = 0
-    jc = 0
-    clc = 0
-    ec = 0
-    rc = 0
-    rapc = 0
     for df in testLists:
         dfCorrect = 0
         dfTotal = 0
@@ -399,19 +396,6 @@ def findPlaylistNB(testLists, nbDict):
             playlist = max(probs.items(), key=operator.itemgetter(1))[0]
             allPlays.append(playlist)
             #if correct prediction, increase correct
-            if playlist == 'country':
-                cc += 1
-            if playlist == 'jazz':
-                jc += 1
-            if playlist == 'classical':
-                clc += 1
-            if playlist == 'edm':
-                ec += 1
-            if playlist == 'rock':
-                rc += 1
-            if playlist == 'rap':
-                rapc += 1
-            print(cc, jc, clc, ec, rc, rapc)
             if(df.name == playlist):
                 dfCorrect += 1
                 correct += 1
@@ -423,7 +407,8 @@ def findPlaylistNB(testLists, nbDict):
 
 
 smallTest = [rock_test]
-# findPlaylistNB(testingNoCountry, nbDict) #no country
+#tried without country as well as without rock....not all shown here
+findPlaylistNB(testingNoCountry, nbDict) #no country
 # findPlaylistNB(testingDFs, nbDict)
 
 #-------KNN ALGORITHM AND HELPERS-------
@@ -449,7 +434,7 @@ def knn(sortedDistances, k):
         counter[key] = 0  
     neighborKeyName=[]
     for i in range(k):
-        minValue=10000
+        minValue=10000 #setting arbitrarily large min value to get reset
         for key, value in sortedDistances.items():
             if value[0][0]<minValue:
                 minName=value[0][1]
@@ -464,7 +449,7 @@ knnsmallTrain = {'classical': classical_train.head(5), 'jazz': jazz_train.head(5
 #initializing counters for correctness
 sumCorrect = 0
 sumTotal = 0
-#looping thrugh all playlist lists
+#looping through all playlist lists
 for df in testingDFs:
 	correct = 0
 	total = 0
